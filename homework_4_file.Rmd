@@ -37,7 +37,6 @@ HDIcols<- HDI %>%
 
 ## Join
 
-
 ```{r}
 Join_HDI <- World %>% 
   clean_names() %>%
@@ -73,4 +72,69 @@ Join_HDI_GB<-Join_HDI %>%
 Join_HDI_2_GB<-Join_HDI_2 %>%
   filter(aff_iso=="GB")
 ```
+
+
+## draw the map
+```{r}
+library(ggplot2)
+```
+
+```{r}
+map_gg <- Join_HDI_2 %>%
+  filter(!is.na(difference)) %>%
+  ggplot() +
+  geom_sf(aes(fill = difference), linewidth = 0.1, color = "grey70") +
+  scale_fill_gradient2(
+    low = "#4575b4", mid = "white", high = "#d73027", midpoint = 0,
+    name = "Δ GII (2019–2010)"
+  ) +
+  labs(
+    title = "Global Gender Inequality Change (2010–2019)",
+    subtitle = "Positive values indicate higher inequality in 2019 than 2010",
+    caption = "Data: UNDP ‘All composite indices and components time series (1990–2021)’"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "right"
+  )
+
+map_gg
+```
+
+## make sure the difference is working
+
+```{r}
+Join_HDI_2 <- Join_HDI_2 %>%
+  dplyr::mutate(difference = ifelse(is.finite(difference), difference, NA_real_))
+
+if (!requireNamespace("tmap", quietly = TRUE)) install.packages("tmap")
+library(tmap)
+```
+
+## interactive map mode
+
+```{r}
+tmap_mode("view")  # open interactive mode
+
+map_tm <- tm_shape(Join_HDI_2) +
+  tm_polygons("difference",
+              title = "Δ GII (2019–2010)",
+              palette = "-RdYlBu",     # Red-Yellow-Blue Reverse (Blue = Decrease, Red = Increase)
+              style   = "pretty",
+              id      = "country",     # Hover mouse to display country name
+              popup.vars = c("GII 2010" = "gii_2010",
+                             "GII 2019" = "gii_2019",
+                             "Δ (19-10)" = "difference")) +
+  tm_layout(main.title = "Global Gender Inequality Change (2010–2019)",
+            legend.outside = TRUE) +
+  tm_view(set.zoom.limits = c(0, 10))  # zoom in/out range
+
+map_tm  
+```
+
+
+
 
